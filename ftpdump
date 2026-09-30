@@ -523,14 +523,14 @@ dump_dir() {
       fi
     done
 
-  if [[ $minidump_enabled ]]; then 
-    find . -type d -empty -delete
-  fi
-
   # Abort script if download has failed
   local result=${PIPESTATUS[0]}
   if [[ $result -gt 0 ]]; then
     wget_error $result
+  fi
+
+  if [[ $minidump_enabled ]]; then 
+    find . -type d -empty -delete
   fi
 }
 

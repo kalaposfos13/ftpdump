@@ -621,6 +621,10 @@ dump_app_data() {
     dump_and_extract_pkg "$root/user/app/$1/app.pkg"
   elif ftp_file_exists "$root/mnt/ext0/user/app/$1/app.pkg"; then
     dump_and_extract_pkg "$root/mnt/ext0/user/app/$1/app.pkg"
+  elif ftp_file_exists "$root/mnt/ext1/user/app/$1/app.pkg"; then
+    dump_and_extract_pkg "$root/mnt/ext1/user/app/$1/app.pkg"
+  elif ftp_file_exists "$root/preinst2/app/$1/app.pkg"; then
+    dump_and_extract_pkg "$root/preinst2/app/$1/app.pkg"
   else
     abort "Could not find FTP file \"app.pkg\"."
   fi
@@ -673,6 +677,8 @@ dump_patch_data() {
       dump_and_extract_pkg "$root/user/patch/$1/patch.pkg"
     elif ftp_file_exists "$root/mnt/ext0/user/patch/$1/patch.pkg"; then
       dump_and_extract_pkg "$root/mnt/ext0/user/patch/$1/patch.pkg"
+    elif ftp_file_exists "$root/mnt/ext1/user/patch/$1/patch.pkg"; then
+      dump_and_extract_pkg "$root/mnt/ext1/user/patch/$1/patch.pkg"
     else
       abort "Could not find FTP file \"patch.pkg\"."
     fi

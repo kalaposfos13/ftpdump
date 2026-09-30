@@ -895,13 +895,8 @@ pkg_list_append() {
   # Add PKG's title to line, if program sfo is available
   if [[ $sfo_path ]]; then
     local temp_param_file=$(create_temp_file)
-    local param_sfo_path
-    if [[ $external ]]; then
-      param_sfo="$root/mnt/ext0/$type/$title_id/param.sfo"
-    else
-      param_sfo="$root/system_data/priv/appmeta/$title_id/param.sfo"
-    fi
-    curl $curl_options --silent "$param_sfo" > "$temp_param_file"
+    curl $curl_options --silent "$root/system_data/priv/appmeta/$title_id/param.sfo" \
+      > "$temp_param_file"
     if [[ $? -eq 0 ]]; then
       # Add title
       line+="$("$sfo_path" -q title "$temp_param_file")"

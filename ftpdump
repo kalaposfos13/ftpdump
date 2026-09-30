@@ -352,7 +352,7 @@ set_decryption() {
 
 # Checks if an FTP file or directory exists.
 ftp_file_exists() {
-  if curl --head --silent "$1" &> /dev/null; then
+  if curl --head --silent "$1" | grep "Content-Length" &> /dev/null; then
     return 0
   else
     return 1

@@ -679,6 +679,8 @@ dump_patch_data() {
       dump_and_extract_pkg "$root/mnt/ext0/user/patch/$1/patch.pkg"
     elif ftp_file_exists "$root/mnt/ext1/user/patch/$1/patch.pkg"; then
       dump_and_extract_pkg "$root/mnt/ext1/user/patch/$1/patch.pkg"
+  elif ftp_file_exists "$root/preinst2/patch/$1/app.pkg"; then
+    dump_and_extract_pkg "$root/preinst2/patch/$1/app.pkg"
     else
       abort "Could not find FTP file \"patch.pkg\"."
     fi
@@ -699,106 +701,54 @@ dump_dlc_data() {
 
   [[ $debug ]] && debug_message "Checking if DLC data exists."
   while read line; do
-    if [[ $line == d*$1*-ac ]]; then
+    if [[ $line =~ ^d.*[A-Z0-9]+$ ]]; then
       [[ $debug ]] && debug_message "Found DLC directory ${line##* }"
       dlc_dirs+="${line##* } "
     fi
-  done < <(curl $curl_options --silent "$root/mnt/sandbox/pfsmnt/")
+  done < <(curl $curl_options --silent "$root/user/addcont/$1/")
+
 
   if [[ $dlc_dirs ]]; then
     cd "$output_dir" || abort
     echo "Dumping $1 DLC data:"
     mkdir -p "$1-dlc" && cd "$1-dlc" || abort
     for dir in $dlc_dirs; do
+      if [ -d "$dir" ]; then
+        echo "DLC \"$dir\" already dumped, skipping."
+        continue
+      fi
+
+      content_id=$(curl $curl_options --silent "$root/mnt/sandbox/pfsmnt/" | grep "$dir" | grep -v "nest")
+      if [[ "$content_id" != "" ]]; then
+        content_id="${content_id##* }"
+        echo "Found mounted DLC dir with content ID \"$content_id\""
+      else
+        echo "Could not find mounted DLC dir for \"$dir\", skipping."
+        continue
+      fi
+
+      if ftp_file_exists "$root/user/addcont/$1/$dir/ac.pkg"; then
+        dlc_pkg="$root/user/addcont/$1/$dir/ac.pkg"
+      elif ftp_file_exists "$root/mnt/ext0/user/addcont/$1/$dir/ac.pkg"; then
+        dlc_pkg="$root/mnt/ext0/user/addcont/$1/$dir/ac.pkg"
+      else
+        echo "Could not find FTP file \"ac.pkg\" for \"$dir\", skipping."
+        continue
+      fi
+
       mkdir "$dir" && cd "$dir" || abort
-      dump_dir "$root/mnt/sandbox/pfsmnt/$dir/"
-      cd .. || abort
+      if [[ "$content_id" != "" ]]; then
+        dump_dir "$root/mnt/sandbox/pfsmnt/$content_id/"
+      fi
+
+      mkdir -p sce_sys && cd sce_sys || abort
+      dump_and_extract_pkg "$dlc_pkg"
+
+      cd ../.. || abort
     done
   else
     echo "No DLC data found for $1."
   fi
-}
-
-# Downloads all PKGs that have the Title ID(s) $@.
-dump_pkgs() {
-  local ftp_file
-  local title_id
-
-  for title_id in "$@"; do
-    if [[ $option_app ]]; then
-      for ftp_file in "$root/user/app/$title_id/app.pkg" \
-        "$root/mnt/ext0/user/app/$title_id/app.pkg"; do
-        if ftp_file_exists "$ftp_file"; then
-          cd "$output_dir" || abort
-          set_download_size "$ftp_file" mb
-          echo "Downloading $title_id app PKG ($download_size MB) ..."
-          mkdir -p "$title_id-app-pkg" && cd "$title_id-app-pkg" || abort
-          curl $curl_options $curl_resume $curl_verbose --progress-bar \
-            --remote-name "$ftp_file" || curl_error "$ftp_file"
-          ftp_file=
-          break;
-        fi
-      done
-      [[ $ftp_file ]] && echo "No app PKG found for $title_id."
-    fi
-
-    if [[ $option_patch ]]; then
-      for ftp_file in "$root/user/patch/$title_id/patch.pkg" \
-        "$root/mnt/ext0/user/patch/$title_id/patch.pkg"; do
-        if ftp_file_exists "$ftp_file"; then
-          cd "$output_dir" || abort
-          set_download_size "$ftp_file" mb
-          echo "Downloading $title_id patch PKG ($download_size MB) ..."
-          mkdir -p "$title_id-patch-pkg" && cd "$title_id-patch-pkg" || abort
-          curl $curl_options $curl_resume $curl_verbose --progress-bar \
-            --remote-name "$ftp_file" || curl_error "$ftp_file"
-          ftp_file=
-          break;
-        fi
-      done
-      [[ $ftp_file ]] && echo "No patch PKG found for $title_id."
-    fi
-
-    if [[ $option_dlc ]]; then
-      local dlc_dir
-
-      # Internal DLC
-      while read -r dlc_dir; do
-        ftp_file="$root/user/addcont/$title_id/$dlc_dir/ac.pkg"
-        if ftp_file_exists "$ftp_file"; then
-          cd "$output_dir" || abort
-          set_download_size "$ftp_file" mb
-          echo "Downloading $title_id DLC PKG \"$dlc_dir\" ($download_size MB) ..."
-          mkdir -p "$title_id-dlc-pkg" && cd "$title_id-dlc-pkg" || abort
-          mkdir -p "$dlc_dir" && cd "$dlc_dir" || abort
-          curl $curl_options $curl_resume $curl_verbose --progress-bar \
-            --remote-name "$ftp_file" || curl_error "$ftp_file"
-        else
-          echo "No DLC PKG found for DLC \"$dlc_dir\"."
-        fi
-      done < <(print_ftp_subdirectories "$root/user/addcont/$title_id/")
-
-      # External DLC
-      while read -r dlc_dir; do
-        ftp_file="$root/mnt/ext0/user/addcont/$title_id/$dlc_dir/ac.pkg"
-        if ftp_file_exists "$ftp_file"; then
-          cd "$output_dir" || abort
-          set_download_size "$ftp_file" mb
-          echo "Downloading $title_id DLC PKG \"$dlc_dir\" ($download_size MB) ..."
-          mkdir -p "$title_id-dlc-pkg" && cd "$title_id-dlc-pkg" || abort
-          mkdir -p "$dlc_dir" && cd "$dlc_dir" || abort
-          curl $curl_options $curl_resume $curl_verbose --progress-bar \
-            --remote-name "$ftp_file" || curl_error "$ftp_file"
-        else
-          echo "No DLC PKG found for DLC \"$dlc_dir\"."
-        fi
-      done < <(print_ftp_subdirectories "$root/mnt/ext0/user/addcont/$title_id/")
-
-      if [[ ! $dlc_dir ]]; then
-        echo "No DLC PKGs found for $title_id."
-      fi
-    fi
-  done
 }
 
 # PKG list: --------------------------------------------------------------------

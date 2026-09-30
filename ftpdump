@@ -21,6 +21,8 @@ beep_interval=3
 # Path (directory or file) to C program "sfo" (https://github.com/hippie68/sfo)
 sfo_path=
 
+is_ps5=false
+
 # Functions: ###################################################################
 
 print_usage() {
@@ -1704,6 +1706,10 @@ if [[ $reply == *GoldHEN*v2* ]]; then
   fi
 fi
 
+if ftp_file_exists "$root/first_img_writer.elf"; then
+  is_ps5=1
+fi
+
 # Print PKG list and quit (option --list)
 if [[ $option_list ]]; then
   list_pkgs "$list_sort_order"
@@ -1722,7 +1728,7 @@ if [[ $shutdown ]]; then
 fi
 
 # Check for KILL command support
-if [[ ! $goldhen_2_old && $reply != *hippie68* ]]; then
+if [[ ! $goldhen_2_old && ! $is_ps5 && $reply != *hippie68* ]]; then
   reply=$(curl --silent --verbose --head --quote KILL "$root" 2>&1)
   if [[ $? -eq 0 ]]; then
     if [[ $reply == *'< 200'* ]]; then

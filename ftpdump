@@ -342,6 +342,8 @@ set_decryption() {
     elif [[ $1 == 1 ]]; then
       [[ $debug ]] && debug_message "This FTP server always decrypts."
     fi
+  elif [[ $is_ps5 ]]; then
+      [[ $debug ]] && debug_message "This FTP server always decrypts."
   else
     warning_message "This FTP server is not able to toggle SELF decryption. Consult your FTP server's documentation to find out whether it decrypts, or use a different FTP server."
     return 1

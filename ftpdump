@@ -1204,6 +1204,10 @@ read_string() {
 # $3: size
 # $4: output file name
 extract_pkg_file() {
+  if [[ $4 == "" ]]; then
+    warning_message "empty filename"
+    return 0
+  fi
   echo "Extracting $4"
   if [[ $4 == */* ]]; then # Create directory, if necessary
     mkdir -p "${4%/*}"

@@ -648,6 +648,13 @@ replace_np_files() {
   fi
 }
 
+read_npwr_id() {
+  local file=$1
+  local npwr
+  npwr=$(grep -aoE 'NPWR[0-9]{5}_[0-9]{2}' "$file" | head -n 1)
+  [[ $npwr ]] && echo "$npwr"
+}
+
 # Dumps app data that belongs to Title ID $1.
 dump_app_data() {
   set_download_size "$root/mnt/sandbox/pfsmnt/$1-app0-nest/pfs_image.dat"

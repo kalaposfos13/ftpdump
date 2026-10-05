@@ -21,8 +21,6 @@ beep_interval=3
 # Path (directory or file) to C program "sfo" (https://github.com/hippie68/sfo)
 sfo_path=
 
-is_ps5=false
-
 # Functions: ###################################################################
 
 print_usage() {
@@ -700,69 +698,71 @@ dump_app_data() {
     fi
   fi
 
-  # Merge appmeta (user + system) into sce_sys/.
+  if [[ $is_ps5_game ]]; then
+    # Merge appmeta (user + system) into sce_sys/.
 
-  local src_user_meta="$root/user/appmeta/$1"
-  local src_sys_meta="$root/system_data/priv/appmeta/$1"
+    local src_user_meta="$root/user/appmeta/$1"
+    local src_sys_meta="$root/system_data/priv/appmeta/$1"
 
-  if ftp_file_exists "$src_user_meta"; then
-    echo "Copying user appmeta: $src_user_meta"
-    dump_full_dir "$src_user_meta/"
-  else
-    warning_message "User appmeta not found: $src_user_meta"
-  fi
-
-  if ftp_file_exists "$src_sys_meta"; then
-    echo "Copying system appmeta: $src_sys_meta"
-    dump_full_dir "$src_sys_meta/"
-  else
-    warning_message "System appmeta not found: $src_sys_meta"
-  fi
-
-  # 3. Trophy & UDS via npbind.dat (now under sce_sys/)
-  mkdir -p trophy2 uds || abort
-
-  local npbind_remote npbind_local=""
-  for npbind_remote in \
-    "${src_sys_meta}/trophy2/npbind.dat" \
-    "${src_sys_meta}/uds/npbind.dat"; do
-    if ftp_file_exists "$npbind_remote"; then
-      npbind_local=$(create_temp_file)
-      curl $curl_options --silent "$npbind_remote" > "$npbind_local" \
-        || curl_error "$npbind_remote"
-      break
+    if ftp_file_exists "$src_user_meta"; then
+      echo "Copying user appmeta: $src_user_meta"
+      dump_full_dir "$src_user_meta/"
+    else
+      warning_message "User appmeta not found: $src_user_meta"
     fi
-  done
 
-  if [[ $npbind_local ]]; then
-    local npwr_id
-    npwr_id=$(read_npwr_id "$npbind_local")
+    if ftp_file_exists "$src_sys_meta"; then
+      echo "Copying system appmeta: $src_sys_meta"
+      dump_full_dir "$src_sys_meta/"
+    else
+      warning_message "System appmeta not found: $src_sys_meta"
+    fi
 
-    if [[ $npwr_id ]]; then
-      echo "NPWR ID: $npwr_id"
+    # 3. Trophy & UDS via npbind.dat (now under sce_sys/)
+    mkdir -p trophy2 uds || abort
 
-      local src_trophy="$root/user/trophy2/nobackup/conf/$npwr_id/TROPHY.UCP"
-      if ftp_file_exists "$src_trophy"; then
-        echo "Copying trophy: $src_trophy"
-        dump_file "$src_trophy"
-        mv TROPHY.UCP trophy2/trophy00.ucp || abort
-      else
-        warning_message "Trophy file not found: $src_trophy"
+    local npbind_remote npbind_local=""
+    for npbind_remote in \
+      "${src_sys_meta}/trophy2/npbind.dat" \
+      "${src_sys_meta}/uds/npbind.dat"; do
+      if ftp_file_exists "$npbind_remote"; then
+        npbind_local=$(create_temp_file)
+        curl $curl_options --silent "$npbind_remote" > "$npbind_local" \
+          || curl_error "$npbind_remote"
+        break
       fi
+    done
 
-      local src_uds="$root/user/np_uds/nobackup/conf/$npwr_id/uds.ucp"
-      if ftp_file_exists "$src_uds"; then
-        echo "Copying UDS: $src_uds"
-        dump_file "$src_uds"
-        mv uds.ucp uds/uds00.ucp || abort
+    if [[ $npbind_local ]]; then
+      local npwr_id
+      npwr_id=$(read_npwr_id "$npbind_local")
+
+      if [[ $npwr_id ]]; then
+        echo "NPWR ID: $npwr_id"
+
+        local src_trophy="$root/user/trophy2/nobackup/conf/$npwr_id/TROPHY.UCP"
+        if ftp_file_exists "$src_trophy"; then
+          echo "Copying trophy: $src_trophy"
+          dump_file "$src_trophy"
+          mv TROPHY.UCP trophy2/trophy00.ucp || abort
+        else
+          warning_message "Trophy file not found: $src_trophy"
+        fi
+
+        local src_uds="$root/user/np_uds/nobackup/conf/$npwr_id/uds.ucp"
+        if ftp_file_exists "$src_uds"; then
+          echo "Copying UDS: $src_uds"
+          dump_file "$src_uds"
+          mv uds.ucp uds/uds00.ucp || abort
+        else
+          warning_message "UDS file not found: $src_uds"
+        fi
       else
-        warning_message "UDS file not found: $src_uds"
+        warning_message "Failed to read NPWR ID from $npbind_remote"
       fi
     else
-      warning_message "Failed to read NPWR ID from $npbind_remote"
+      echo "npbind.dat not found in either location."
     fi
-  else
-    echo "npbind.dat not found in either location."
   fi
 
   replace_np_files "$1"
@@ -1785,6 +1785,10 @@ fi
 
 if ftp_file_exists "$root/first_img_writer.elf"; then
   is_ps5=1
+fi
+
+if ftp_file_exists "$root/system_data/priv/appmeta/$short_id/param.json"; then
+  is_ps5_game=1
 fi
 
 # Print PKG list and quit (option --list)

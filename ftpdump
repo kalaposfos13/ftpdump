@@ -701,8 +701,6 @@ dump_app_data() {
   fi
 
   # Merge appmeta (user + system) into sce_sys/.
-  # The mount already provided sce_sys/, so we merge into it.
-  mkdir -p sce_sys || abort
 
   local src_user_meta="$root/user/appmeta/$1"
   local src_sys_meta="$root/system_data/priv/appmeta/$1"
@@ -722,7 +720,6 @@ dump_app_data() {
   fi
 
   # 3. Trophy & UDS via npbind.dat (now under sce_sys/)
-  cd sce_sys || abort
   mkdir -p trophy2 uds || abort
 
   local npbind_remote npbind_local=""

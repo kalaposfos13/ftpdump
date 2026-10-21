@@ -698,18 +698,17 @@ dump_app_data() {
     fi
   fi
 
+  local src_user_meta="$root/user/appmeta/$1"
+
+  if ftp_file_exists "$src_user_meta"; then
+    echo "Copying user appmeta: $src_user_meta"
+    dump_full_dir "$src_user_meta/"
+  else
+    warning_message "User appmeta not found: $src_user_meta"
+  fi
+
   if [[ $is_ps5_game ]]; then
-    # Merge appmeta (user + system) into sce_sys/.
-
-    local src_user_meta="$root/user/appmeta/$1"
     local src_sys_meta="$root/system_data/priv/appmeta/$1"
-
-    if ftp_file_exists "$src_user_meta"; then
-      echo "Copying user appmeta: $src_user_meta"
-      dump_full_dir "$src_user_meta/"
-    else
-      warning_message "User appmeta not found: $src_user_meta"
-    fi
 
     if ftp_file_exists "$src_sys_meta"; then
       echo "Copying system appmeta: $src_sys_meta"
@@ -718,7 +717,7 @@ dump_app_data() {
       warning_message "System appmeta not found: $src_sys_meta"
     fi
 
-    # 3. Trophy & UDS via npbind.dat (now under sce_sys/)
+    # 3. Trophy & UDS via npbind.dat
     mkdir -p trophy2 uds || abort
 
     local npbind_remote npbind_local=""
